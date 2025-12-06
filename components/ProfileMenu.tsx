@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useStore } from '@/lib/store';
-import { LogOut, User, ChevronDown } from 'lucide-react';
+import { useStore, EAGLE_ICON } from '@/lib/store';
+import { LogOut, ChevronDown } from 'lucide-react';
 
 export default function ProfileMenu() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function ProfileMenu() {
         onClick={() => setShowMenu(!showMenu)}
         className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded transition"
       >
-        <User className="w-4 h-4" />
+        <span className="text-lg" style={{ transform: 'scaleX(-1)', display: 'inline-block' }}>{EAGLE_ICON}</span>
         <span className="text-sm font-medium">{user.username}</span>
         <ChevronDown className="w-4 h-4" />
       </button>

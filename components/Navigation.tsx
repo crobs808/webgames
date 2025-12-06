@@ -4,12 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { Gamepad2, Home, ChevronDown } from 'lucide-react';
+import { Gamepad2, Home, ChevronDown, Volume2, VolumeX } from 'lucide-react';
 import ProfileMenu from './ProfileMenu';
 
 export default function Navigation() {
   const pathname = usePathname();
-  const { user } = useStore();
+  const { user, isSoundMuted, toggleSoundMute } = useStore();
   const [showGamesMenu, setShowGamesMenu] = useState(false);
   const { games } = useStore();
 
@@ -72,6 +72,19 @@ export default function Navigation() {
         </div>
 
         <div className="flex gap-6 items-center">
+          {/* Sound toggle button */}
+          <button
+            onClick={toggleSoundMute}
+            className="p-2 rounded hover:bg-slate-700 transition"
+            title={isSoundMuted ? 'Unmute sound' : 'Mute sound'}
+          >
+            {isSoundMuted ? (
+              <VolumeX className="w-5 h-5 text-slate-400" />
+            ) : (
+              <Volume2 className="w-5 h-5 text-slate-300" />
+            )}
+          </button>
+
           {user ? (
             <ProfileMenu />
           ) : (

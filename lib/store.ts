@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { User, GameScore, Achievement, Game, LeaderboardEntry } from './types';
 
+// Eagle icon constant - used throughout the app
+export const EAGLE_ICON = '🦅';
+
 interface Store {
   user: User | null;
   isLoading: boolean;
@@ -8,6 +11,7 @@ interface Store {
   games: Game[];
   scores: GameScore[];
   achievements: Achievement[];
+  isSoundMuted: boolean;
   
   // Auth actions
   loginAsGuest: (username: string) => Promise<void>;
@@ -15,6 +19,9 @@ interface Store {
   setUser: (user: User | null) => void;
   setError: (error: string | null) => void;
   loadPersistedUser: () => void;
+  
+  // Sound actions
+  toggleSoundMute: () => void;
   
   // Game actions
   addScore: (score: GameScore) => void;
@@ -37,7 +44,7 @@ export const useStore = create<Store>((set, get) => ({
       id: 'flappy',
       name: 'Sky Flyer',
       description: 'Navigate through obstacles without crashing',
-      icon: '🦅',
+      icon: EAGLE_ICON,
       color: 'from-blue-400 to-blue-600',
       gamesPlayed: 0,
       averageScore: 0,
@@ -81,6 +88,7 @@ export const useStore = create<Store>((set, get) => ({
   ],
   scores: [],
   achievements: [],
+  isSoundMuted: false,
 
   loginAsGuest: async (username: string) => {
     set({ isLoading: true, error: null });
@@ -160,6 +168,10 @@ export const useStore = create<Store>((set, get) => ({
         }
       }
     }
+  },
+
+  toggleSoundMute: () => {
+    set((state) => ({ isSoundMuted: !state.isSoundMuted }));
   },
 
   getLeaderboard: () => {
