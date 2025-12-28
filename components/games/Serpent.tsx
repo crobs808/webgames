@@ -99,7 +99,7 @@ export default function Serpent() {
             game.score += 10;
             setScore(game.score);
             // Spawn new food on the grid
-            let newFood;
+            let newFood: { x: number; y: number };
             do {
               newFood = {
                 x: Math.floor(Math.random() * (canvas.width / 20)) * 20,

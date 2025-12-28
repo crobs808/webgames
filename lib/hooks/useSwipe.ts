@@ -19,8 +19,8 @@ export interface UseSwipeOptions {
 /**
  * Hook for handling swipe gestures on a ref element
  */
-export function useSwipe<T extends HTMLElement>(
-  ref: RefObject<T>,
+export function useSwipe<T extends HTMLElement = HTMLElement>(
+  ref: RefObject<T | null>,
   options: UseSwipeOptions
 ) {
   const optionsRef = useRef(options);
@@ -73,8 +73,8 @@ export function useSwipe<T extends HTMLElement>(
 /**
  * Hook for handling touch drag on canvas for paddle/slider controls
  */
-export function useTouchDrag<T extends HTMLElement>(
-  ref: RefObject<T>,
+export function useTouchDrag<T extends HTMLElement = HTMLElement>(
+  ref: RefObject<T | null>,
   onDrag: (x: number, y: number) => void
 ) {
   const onDragRef = useRef(onDrag);

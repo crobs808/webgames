@@ -149,10 +149,11 @@ export default function BlockStack() {
       } else if (gameState === 'playing') {
         // Draw placed blocks
         for (let i = 0; i < game.grid.length; i++) {
-          if (game.grid[i]) {
+          const cell = game.grid[i];
+          if (cell) {
             const row = Math.floor(i / GRID_WIDTH);
             const col = i % GRID_WIDTH;
-            ctx.fillStyle = game.grid[i];
+            ctx.fillStyle = typeof cell === 'string' ? cell : '#fff';
             ctx.fillRect(col * BLOCK_SIZE + 1, row * BLOCK_SIZE + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
           }
         }
@@ -288,10 +289,8 @@ export default function BlockStack() {
         handleStart();
       }
 
-      if (gameState === 'playing' && gameRef.current.currentPiece) {
-        const game = gameRef.current;
-        const piece = game.currentPiece;
-
+      const piece = gameRef.current.currentPiece;
+      if (gameState === 'playing' && piece !== null) {
         switch (e.code) {
           case 'ArrowLeft':
             if (canPlacePiece(piece, piece.x - 1, piece.y)) {
@@ -331,32 +330,32 @@ export default function BlockStack() {
   useSwipe(canvasRef, {
     onTap: handleStart,
     onSwipeLeft: () => {
-      if (gameState === 'playing' && gameRef.current.currentPiece) {
-        const piece = gameRef.current.currentPiece;
+      const piece = gameRef.current.currentPiece;
+      if (gameState === 'playing' && piece !== null) {
         if (canPlacePiece(piece, piece.x - 1, piece.y)) {
           piece.x--;
         }
       }
     },
     onSwipeRight: () => {
-      if (gameState === 'playing' && gameRef.current.currentPiece) {
-        const piece = gameRef.current.currentPiece;
+      const piece = gameRef.current.currentPiece;
+      if (gameState === 'playing' && piece !== null) {
         if (canPlacePiece(piece, piece.x + 1, piece.y)) {
           piece.x++;
         }
       }
     },
     onSwipeDown: () => {
-      if (gameState === 'playing' && gameRef.current.currentPiece) {
-        const piece = gameRef.current.currentPiece;
+      const piece = gameRef.current.currentPiece;
+      if (gameState === 'playing' && piece !== null) {
         if (canPlacePiece(piece, piece.x, piece.y + 1)) {
           piece.y++;
         }
       }
     },
     onSwipeUp: () => {
-      if (gameState === 'playing' && gameRef.current.currentPiece) {
-        const piece = gameRef.current.currentPiece;
+      const piece = gameRef.current.currentPiece;
+      if (gameState === 'playing' && piece !== null) {
         // Rotate piece
         const rotated = piece.shape[0].map((_: number, i: number) =>
           piece.shape.map((row: number[]) => row[i]).reverse()
@@ -419,20 +418,4 @@ export default function BlockStack() {
       </div>
     </div>
   );
-}
-
-function canPlace(piece: any, x: number, y: number) {
-  for (let row = 0; row < piece.shape.length; row++) {
-    for (let col = 0; col < piece.shape[row].length; col++) {
-      if (piece.shape[row][col]) {
-        const gridX = x + col;
-        const gridY = y + row;
-
-        if (gridX < 0 || gridX >= GRID_WIDTH || gridY >= GRID_HEIGHT) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
 }
