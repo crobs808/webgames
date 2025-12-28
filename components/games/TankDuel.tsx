@@ -270,6 +270,16 @@ export default function TankDuel() {
     router.push('/games');
   };
 
+  // Store timeout IDs for cleanup
+  const swipeTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+  useEffect(() => {
+    // Cleanup all timeouts on unmount
+    return () => {
+      swipeTimeoutsRef.current.forEach(clearTimeout);
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -339,19 +349,34 @@ export default function TankDuel() {
     onSwipeUp: () => {
       if (gameState === 'playing') {
         gameRef.current.keys.w = true;
-        setTimeout(() => { gameRef.current.keys.w = false; }, 100);
+        const timeoutId = setTimeout(() => { 
+          if (gameRef.current) {
+            gameRef.current.keys.w = false;
+          }
+        }, 100);
+        swipeTimeoutsRef.current.push(timeoutId);
       }
     },
     onSwipeLeft: () => {
       if (gameState === 'playing') {
         gameRef.current.keys.a = true;
-        setTimeout(() => { gameRef.current.keys.a = false; }, 100);
+        const timeoutId = setTimeout(() => {
+          if (gameRef.current) {
+            gameRef.current.keys.a = false;
+          }
+        }, 100);
+        swipeTimeoutsRef.current.push(timeoutId);
       }
     },
     onSwipeRight: () => {
       if (gameState === 'playing') {
         gameRef.current.keys.d = true;
-        setTimeout(() => { gameRef.current.keys.d = false; }, 100);
+        const timeoutId = setTimeout(() => {
+          if (gameRef.current) {
+            gameRef.current.keys.d = false;
+          }
+        }, 100);
+        swipeTimeoutsRef.current.push(timeoutId);
       }
     },
   });

@@ -52,10 +52,10 @@ export function useSwipe<T extends HTMLElement = HTMLElement>(
             break;
         }
       },
-      onTap: optionsRef.current.onTap,
-      onTouchStart: optionsRef.current.onTouchStart,
-      onTouchMove: optionsRef.current.onTouchMove,
-      onTouchEnd: optionsRef.current.onTouchEnd,
+      onTap: (x, y) => optionsRef.current.onTap?.(x, y),
+      onTouchStart: (x, y) => optionsRef.current.onTouchStart?.(x, y),
+      onTouchMove: (x, y) => optionsRef.current.onTouchMove?.(x, y),
+      onTouchEnd: (x, y) => optionsRef.current.onTouchEnd?.(x, y),
     });
 
     element.addEventListener('touchstart', handlers.handleTouchStart, { passive: false });
