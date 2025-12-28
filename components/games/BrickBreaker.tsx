@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { GameScore } from '@/lib/types';
+import { useTouchDrag } from '@/lib/hooks/useSwipe';
+import { isMobileDevice } from '@/lib/canvasUtils';
 
 export default function BrickBreaker() {
   const router = useRouter();
@@ -244,24 +246,39 @@ export default function BrickBreaker() {
     };
   }, [gameState]);
 
+  // Add touch drag control for paddle
+  useTouchDrag(canvasRef, (x) => {
+    if (gameState === 'playing' && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaledX = x * scaleX;
+      const game = gameRef.current;
+      // Center paddle on touch position
+      game.paddle.x = Math.max(0, Math.min(canvas.width - game.paddle.width, scaledX - game.paddle.width / 2));
+    }
+  });
+
+  const isMobile = typeof window !== 'undefined' && isMobileDevice();
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Brick Breaker</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Brick Breaker</h1>
         <button
           onClick={handleFinish}
-          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded transition"
+          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded transition text-sm sm:text-base"
         >
           Exit Game
         </button>
       </div>
 
-      <div className="flex gap-8 justify-center items-start">
-        {/* Stats on the left */}
-        <div className="w-32 space-y-6">
-          <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-            <p className="text-slate-400 text-sm font-semibold mb-1">SCORE</p>
-            <p className="text-3xl font-bold text-orange-400">{score}</p>
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 justify-center items-center">
+        {/* Stats on the left (or top on mobile) */}
+        <div className="w-full sm:w-32 flex sm:flex-col gap-4 sm:gap-6">
+          <div className="flex-1 sm:flex-none p-3 sm:p-4 bg-slate-800 rounded-lg border border-slate-700">
+            <p className="text-slate-400 text-xs sm:text-sm font-semibold mb-1">SCORE</p>
+            <p className="text-2xl sm:text-3xl font-bold text-orange-400">{score}</p>
           </div>
         </div>
 
@@ -271,12 +288,16 @@ export default function BrickBreaker() {
           width={400}
           height={400}
           onClick={handleStart}
-          className="border-2 border-orange-400 rounded cursor-pointer"
+          className="border-2 border-orange-400 rounded cursor-pointer max-w-full touch-none"
+          style={{ 
+            width: isMobile ? 'min(90vw, 400px)' : '400px',
+            height: isMobile ? 'min(90vw, 400px)' : '400px',
+          }}
         />
       </div>
 
-      <div className="text-center mt-6 text-slate-400">
-        <p>Use Arrow Keys to move the paddle</p>
+      <div className="text-center mt-4 sm:mt-6 text-slate-400 text-sm sm:text-base">
+        <p>{isMobile ? 'Touch and drag to move the paddle' : 'Use Arrow Keys to move the paddle'}</p>
       </div>
     </div>
   );

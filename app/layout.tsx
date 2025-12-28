@@ -18,6 +18,13 @@ export const metadata: Metadata = {
   description: "A collection of fun web-based games with achievements, leaderboards, and social features",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

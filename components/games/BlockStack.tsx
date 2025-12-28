@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { GameScore } from '@/lib/types';
+import { useSwipe } from '@/lib/hooks/useSwipe';
+import { isMobileDevice } from '@/lib/canvasUtils';
 
 const GRID_WIDTH = 10;
 const GRID_HEIGHT = 20;
@@ -17,9 +19,15 @@ export default function BlockStack() {
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameOver'>('menu');
   const [score, setScore] = useState(0);
 
-  const gameRef = useRef({
+  const gameRef = useRef<{
+    grid: (number | string)[];
+    currentPiece: { shape: number[][]; color: string; x: number; y: number } | null;
+    score: number;
+    gameOver: boolean;
+    level: number;
+  }>({
     grid: Array(GRID_HEIGHT * GRID_WIDTH).fill(0),
-    currentPiece: null as any,
+    currentPiece: null,
     score: 0,
     gameOver: false,
     level: 1,
@@ -56,7 +64,7 @@ export default function BlockStack() {
       };
     };
 
-    const canPlace = (piece: any, x: number, y: number) => {
+    const canPlace = (piece: { shape: number[][]; x: number; y: number }, x: number, y: number) => {
       for (let row = 0; row < piece.shape.length; row++) {
         for (let col = 0; col < piece.shape[row].length; col++) {
           if (piece.shape[row][col]) {
@@ -76,7 +84,7 @@ export default function BlockStack() {
       return true;
     };
 
-    const placePiece = (piece: any, x: number, y: number) => {
+    const placePiece = (piece: { shape: number[][]; color: string; x: number; y: number }, x: number, y: number) => {
       for (let row = 0; row < piece.shape.length; row++) {
         for (let col = 0; col < piece.shape[row].length; col++) {
           if (piece.shape[row][col]) {
@@ -251,6 +259,28 @@ export default function BlockStack() {
     router.push('/games');
   };
 
+  // Helper to check if piece can be placed
+  const canPlacePiece = (piece: { shape: number[][]; x: number; y: number }, x: number, y: number) => {
+    const game = gameRef.current;
+    for (let row = 0; row < piece.shape.length; row++) {
+      for (let col = 0; col < piece.shape[row].length; col++) {
+        if (piece.shape[row][col]) {
+          const gridX = x + col;
+          const gridY = y + row;
+
+          if (gridX < 0 || gridX >= GRID_WIDTH || gridY >= GRID_HEIGHT) {
+            return false;
+          }
+
+          if (gridY >= 0 && game.grid[gridY * GRID_WIDTH + gridX]) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  };
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -264,28 +294,28 @@ export default function BlockStack() {
 
         switch (e.code) {
           case 'ArrowLeft':
-            if (canPlace(piece, piece.x - 1, piece.y)) {
+            if (canPlacePiece(piece, piece.x - 1, piece.y)) {
               piece.x--;
             }
             break;
           case 'ArrowRight':
-            if (canPlace(piece, piece.x + 1, piece.y)) {
+            if (canPlacePiece(piece, piece.x + 1, piece.y)) {
               piece.x++;
             }
             break;
           case 'ArrowDown':
-            if (canPlace(piece, piece.x, piece.y + 1)) {
+            if (canPlacePiece(piece, piece.x, piece.y + 1)) {
               piece.y++;
             }
             break;
           case 'ArrowUp':
             // Rotate piece
-            const rotated = piece.shape[0].map((_: any, i: number) =>
-              piece.shape.map((row: any) => row[i]).reverse()
+            const rotated = piece.shape[0].map((_: number, i: number) =>
+              piece.shape.map((row: number[]) => row[i]).reverse()
             );
             const originalShape = piece.shape;
             piece.shape = rotated;
-            if (!canPlace(piece, piece.x, piece.y)) {
+            if (!canPlacePiece(piece, piece.x, piece.y)) {
               piece.shape = originalShape;
             }
             break;
@@ -297,30 +327,75 @@ export default function BlockStack() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState]);
 
+  // Add swipe controls for mobile
+  useSwipe(canvasRef, {
+    onTap: handleStart,
+    onSwipeLeft: () => {
+      if (gameState === 'playing' && gameRef.current.currentPiece) {
+        const piece = gameRef.current.currentPiece;
+        if (canPlacePiece(piece, piece.x - 1, piece.y)) {
+          piece.x--;
+        }
+      }
+    },
+    onSwipeRight: () => {
+      if (gameState === 'playing' && gameRef.current.currentPiece) {
+        const piece = gameRef.current.currentPiece;
+        if (canPlacePiece(piece, piece.x + 1, piece.y)) {
+          piece.x++;
+        }
+      }
+    },
+    onSwipeDown: () => {
+      if (gameState === 'playing' && gameRef.current.currentPiece) {
+        const piece = gameRef.current.currentPiece;
+        if (canPlacePiece(piece, piece.x, piece.y + 1)) {
+          piece.y++;
+        }
+      }
+    },
+    onSwipeUp: () => {
+      if (gameState === 'playing' && gameRef.current.currentPiece) {
+        const piece = gameRef.current.currentPiece;
+        // Rotate piece
+        const rotated = piece.shape[0].map((_: number, i: number) =>
+          piece.shape.map((row: number[]) => row[i]).reverse()
+        );
+        const originalShape = piece.shape;
+        piece.shape = rotated;
+        if (!canPlacePiece(piece, piece.x, piece.y)) {
+          piece.shape = originalShape;
+        }
+      }
+    },
+  });
+
+  const isMobile = typeof window !== 'undefined' && isMobileDevice();
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Block Stack</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Block Stack</h1>
         <button
           onClick={handleFinish}
-          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded transition"
+          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded transition text-sm sm:text-base"
         >
           Exit Game
         </button>
       </div>
 
-      <div className="flex gap-8 justify-center items-start">
-        {/* Stats on the left */}
-        <div className="w-32 space-y-6">
-          <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-            <p className="text-slate-400 text-sm font-semibold mb-1">SCORE</p>
-            <p className="text-3xl font-bold text-purple-400">{score}</p>
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 justify-center items-center">
+        {/* Stats on the left (or top on mobile) */}
+        <div className="w-full sm:w-32 flex sm:flex-col gap-4 sm:gap-6">
+          <div className="flex-1 sm:flex-none p-3 sm:p-4 bg-slate-800 rounded-lg border border-slate-700">
+            <p className="text-slate-400 text-xs sm:text-sm font-semibold mb-1">SCORE</p>
+            <p className="text-2xl sm:text-3xl font-bold text-purple-400">{score}</p>
           </div>
           
           {gameState === 'playing' && (
-            <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-              <p className="text-slate-400 text-sm font-semibold mb-1">LEVEL</p>
-              <p className="text-2xl font-bold text-blue-400">1</p>
+            <div className="flex-1 sm:flex-none p-3 sm:p-4 bg-slate-800 rounded-lg border border-slate-700">
+              <p className="text-slate-400 text-xs sm:text-sm font-semibold mb-1">LEVEL</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-400">1</p>
             </div>
           )}
         </div>
@@ -331,12 +406,16 @@ export default function BlockStack() {
           width={200 + 80}
           height={400}
           onClick={handleStart}
-          className="border-2 border-purple-400 rounded cursor-pointer"
+          className="border-2 border-purple-400 rounded cursor-pointer max-w-full touch-none"
+          style={{ 
+            width: isMobile ? 'min(70vw, 280px)' : '280px',
+            height: isMobile ? 'min(133vw, 400px)' : '400px',
+          }}
         />
       </div>
 
-      <div className="text-center mt-6 text-slate-400">
-        <p>Arrow keys to move, Up arrow to rotate</p>
+      <div className="text-center mt-4 sm:mt-6 text-slate-400 text-sm sm:text-base">
+        <p>{isMobile ? 'Swipe to move/rotate blocks' : 'Arrow keys to move, Up arrow to rotate'}</p>
       </div>
     </div>
   );

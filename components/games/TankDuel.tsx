@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { GameScore } from '@/lib/types';
+import { useSwipe } from '@/lib/hooks/useSwipe';
+import { isMobileDevice } from '@/lib/canvasUtils';
+import { VirtualButton } from '@/components/VirtualControls';
 
 export default function TankDuel() {
   const router = useRouter();
@@ -12,6 +15,7 @@ export default function TankDuel() {
 
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameOver'>('menu');
   const [score, setScore] = useState(0);
+  const [playerHealth, setPlayerHealth] = useState(3);
 
   const gameRef = useRef({
     playerTank: {
@@ -108,7 +112,7 @@ export default function TankDuel() {
         }
 
         // Draw tanks
-        const drawTank = (tank: any, color: string) => {
+        const drawTank = (tank: { x: number; y: number; width: number; height: number; angle: number }, color: string) => {
           ctx.save();
           ctx.translate(tank.x + tank.width / 2, tank.y + tank.height / 2);
           ctx.rotate(tank.angle);
@@ -167,6 +171,9 @@ export default function TankDuel() {
           game.gameOver = true;
           setGameState('gameOver');
         }
+
+        // Update health display
+        setPlayerHealth(game.playerTank.health);
       } else if (gameState === 'gameOver') {
         const playerWon = game.enemyTank.health <= 0;
         ctx.fillStyle = '#fff';
@@ -216,6 +223,7 @@ export default function TankDuel() {
         keys: { w: false, a: false, d: false, space: false },
       };
       setScore(0);
+      setPlayerHealth(3);
     } else if (gameState === 'gameOver') {
       setGameState('playing');
       gameRef.current = {
@@ -243,6 +251,7 @@ export default function TankDuel() {
         keys: { w: false, a: false, d: false, space: false },
       };
       setScore(0);
+      setPlayerHealth(3);
     }
   };
 
@@ -307,30 +316,72 @@ export default function TankDuel() {
     };
   }, [gameState]);
 
+  // Shoot handler for mobile
+  const handleShoot = () => {
+    if (gameState === 'playing') {
+      const game = gameRef.current;
+      if (game.playerTank.ammo > 0) {
+        game.projectiles.push({
+          x: game.playerTank.x + 15,
+          y: game.playerTank.y + 15,
+          vx: Math.cos(game.playerTank.angle) * 4,
+          vy: Math.sin(game.playerTank.angle) * 4,
+          owner: 'player',
+        });
+        game.playerTank.ammo--;
+      }
+    }
+  };
+
+  // Add swipe controls for mobile
+  useSwipe(canvasRef, {
+    onTap: handleStart,
+    onSwipeUp: () => {
+      if (gameState === 'playing') {
+        gameRef.current.keys.w = true;
+        setTimeout(() => { gameRef.current.keys.w = false; }, 100);
+      }
+    },
+    onSwipeLeft: () => {
+      if (gameState === 'playing') {
+        gameRef.current.keys.a = true;
+        setTimeout(() => { gameRef.current.keys.a = false; }, 100);
+      }
+    },
+    onSwipeRight: () => {
+      if (gameState === 'playing') {
+        gameRef.current.keys.d = true;
+        setTimeout(() => { gameRef.current.keys.d = false; }, 100);
+      }
+    },
+  });
+
+  const isMobile = typeof window !== 'undefined' && isMobileDevice();
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Tank Duel</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Tank Duel</h1>
         <button
           onClick={handleFinish}
-          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded transition"
+          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded transition text-sm sm:text-base"
         >
           Exit Game
         </button>
       </div>
 
-      <div className="flex gap-8 justify-center items-start">
-        {/* Stats on the left */}
-        <div className="w-32 space-y-6">
-          <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-            <p className="text-slate-400 text-sm font-semibold mb-1">SCORE</p>
-            <p className="text-3xl font-bold text-red-400">{score}</p>
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 justify-center items-center">
+        {/* Stats on the left (or top on mobile) */}
+        <div className="w-full sm:w-32 flex sm:flex-col gap-4 sm:gap-6">
+          <div className="flex-1 sm:flex-none p-3 sm:p-4 bg-slate-800 rounded-lg border border-slate-700">
+            <p className="text-slate-400 text-xs sm:text-sm font-semibold mb-1">SCORE</p>
+            <p className="text-2xl sm:text-3xl font-bold text-red-400">{score}</p>
           </div>
           
           {gameState === 'playing' && (
-            <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-              <p className="text-slate-400 text-sm font-semibold mb-1">HEALTH</p>
-              <p className="text-2xl font-bold text-yellow-400">{gameRef.current.playerTank.health}</p>
+            <div className="flex-1 sm:flex-none p-3 sm:p-4 bg-slate-800 rounded-lg border border-slate-700">
+              <p className="text-slate-400 text-xs sm:text-sm font-semibold mb-1">HEALTH</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-400">{playerHealth}</p>
             </div>
           )}
         </div>
@@ -341,12 +392,23 @@ export default function TankDuel() {
           width={400}
           height={300}
           onClick={handleStart}
-          className="border-2 border-red-400 rounded cursor-pointer"
+          className="border-2 border-red-400 rounded cursor-pointer max-w-full touch-none"
+          style={{ 
+            width: isMobile ? 'min(90vw, 400px)' : '400px',
+            height: isMobile ? 'min(67.5vw, 300px)' : '300px',
+          }}
         />
       </div>
 
-      <div className="text-center mt-6 text-slate-400">
-        <p>W to move, A/D to rotate, SPACE to shoot</p>
+      {/* Shoot button for mobile */}
+      {isMobile && gameState === 'playing' && (
+        <VirtualButton onPress={handleShoot} position="bottom-right">
+          🔥
+        </VirtualButton>
+      )}
+
+      <div className="text-center mt-4 sm:mt-6 text-slate-400 text-sm sm:text-base">
+        <p>{isMobile ? 'Swipe to move/rotate, tap button to shoot' : 'W to move, A/D to rotate, SPACE to shoot'}</p>
       </div>
     </div>
   );
